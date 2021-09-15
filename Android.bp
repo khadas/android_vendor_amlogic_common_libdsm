@@ -1,0 +1,40 @@
+cc_library_shared {
+    name: "libdsm",
+    vendor: true,
+    srcs: [
+        "libdsm.c",
+    ],
+
+    local_include_dirs: [
+        "."
+    ],
+
+    export_include_dirs: [
+        "."
+    ],
+
+    include_dirs: [
+        "system/core/liblog/include",
+    ],
+
+    shared_libs: [
+        "liblog",
+    ],
+
+}
+
+cc_binary {
+    name: "dsm_test",
+    vendor: true,
+    srcs: [
+        "dsm_test.cpp",
+    ],
+
+    local_include_dirs: [
+        "."
+    ],
+
+    shared_libs: [
+        "libdsm"
+    ],
+}
