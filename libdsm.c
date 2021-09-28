@@ -14,139 +14,151 @@
 #include <fcntl.h>
 #include <log/log.h>
 
-#include "linux/aml_dsm_dev.h"
+//#include "linux/aml_dsm_dev.h"
+#include "aml_dsm.h"
 #include "libdsm.h"
 
 #define DSM_DEV "/dev/aml_dsm"
 
 
-int dsm_open(void)
+int DSM_OpenSession(uint32_t param)
 {
-    int fd = -1;
+	int fd = -1;
 
-    fd = open(DSM_DEV, O_RDWR | O_TRUNC);
-    if (fd < 0) {
-        goto exit;
-    }
+	(void) (param);
+	fd = open(DSM_DEV, O_RDWR | O_TRUNC);
+	if (fd < 0) {
+		goto exit;
+	}
 
 exit:
-    return fd;
+	return fd;
 }
 
-void dsm_close(int handle)
+void DSM_CloseSession(int handle)
 {
-    if (handle >= 0) {
-        close(handle);
-    }
+	if (handle >= 0) {
+		close(handle);
+	}
 }
 
-int dsm_open_session(int handle, uint32_t *token)
+int DSM_GenerateToken(int handle, uint32_t *token)
 {
-    return dsm_open_session_prefix(handle, token, 0, 0);
+	return DSM_GenerateTokenWithPrefix(handle, 0, 0, token);
 }
 
-int dsm_open_session_prefix(int handle, uint32_t *token, uint32_t prefix, uint32_t mask)
+int DSM_GenerateTokenWithPrefix(int handle, uint32_t prefix, uint32_t mask, uint32_t *token)
 {
-    int r = -1;
-    union dsm_para para = { 0 };
+	int r = -1;
+	union dsm_para para = { 0 };
 
-    if (!token || handle < 0)
-        return -EINVAL;
+	if (!token || handle < 0)
+		return -EINVAL;
 
-    para.session.prefix = prefix;
-    para.session.mask = mask;
-    r = ioctl(handle, DSM_IOC_OPEN_SESSION, (unsigned long)&para);
-    if (!r)
-        *token = para.session.token;
-    return r;
+	para.session.prefix = prefix;
+	para.session.mask = mask;
+	r = ioctl(handle, DSM_IOC_OPEN_SESSION, (unsigned long)&para);
+	if (!r)
+		*token = para.session.token;
+	return r;
 }
 
-int dsm_add_keyslot(int handle, struct dsm_keyslot *keyslot)
+int DSM_AddKeySlot(int handle, struct dsm_keyslot *slot)
 {
-    int r = -1;
-    union dsm_para para = { 0 };
+	int r = -1;
+	union dsm_para para = { 0 };
 
-    if (!keyslot || handle < 0)
-        return -EINVAL;
+	if (!slot || handle < 0)
+		return -EINVAL;
 
-    para.keyslot.id = keyslot->id;
-    para.keyslot.type = keyslot->type;
+	para.keyslot.id = slot->id;
+	para.keyslot.parity = slot->parity;
+	para.keyslot.algo = slot->algo;
+	para.keyslot.is_iv = slot->is_iv;
+	para.keyslot.is_enc = slot->is_enc;
 
-    r = ioctl(handle, DSM_IOC_ADD_KEYSLOT, (unsigned long)&para);
+	r = ioctl(handle, DSM_IOC_ADD_KEYSLOT, (unsigned long)&para);
 
-    return r;
+	return r;
 }
 
-int dsm_del_keyslot(int handle, uint32_t id)
+int DSM_RemoveKeySlot(int handle, uint32_t id)
 {
-    int r = -1;
-    union dsm_para para = { 0 };
+	int r = -1;
+	union dsm_para para = { 0 };
 
-    if (handle < 0)
-        return -EINVAL;
+	if (handle < 0)
+		return -EINVAL;
 
-    para.keyslot.id = id;
-    r = ioctl(handle, DSM_IOC_DEL_KEYSLOT, (unsigned long)&para);
-    return r;
+	para.keyslot.id = id;
+	r = ioctl(handle, DSM_IOC_DEL_KEYSLOT, (unsigned long)&para);
+	return r;
 }
 
-int dsm_set_token(int handle, uint32_t token)
+int DSM_BindToken(int handle, uint32_t token)
 {
-    int r = -1;
-    union dsm_para para = { 0 };
+	int r = -1;
+	union dsm_para para = { 0 };
 
-    if (handle < 0)
-        return -EINVAL;
+	if (handle < 0)
+		return -EINVAL;
 
-    para.session.token = token;
-    r = ioctl(handle, DSM_IOC_SET_TOKEN, (unsigned long)&para);
-    return r;
+	para.session.token = token;
+	r = ioctl(handle, DSM_IOC_SET_TOKEN, (unsigned long)&para);
+	return r;
 }
 
-int dsm_get_keyslot_list(int handle, struct dsm_keyslot_list *keyslot_list)
+int DSM_GetKeySlots(int handle, struct dsm_keyslot_list *slots)
 {
-    int r = -1;
-    int i;
-    union dsm_para para = { 0 };
+	int r = -1;
+	int i;
+	union dsm_para para = { 0 };
 
-    if (!keyslot_list || handle < 0)
-        return -EINVAL;
+	if (!slots || handle < 0)
+		return -EINVAL;
 
-    r = ioctl(handle, DSM_IOC_GET_KEYSLOT_LIST, (unsigned long)&para);
-    if (!r) {
-        keyslot_list->count = para.keyslot_list.count;
-        for (i = 0; i < keyslot_list->count; i++) {
-            keyslot_list->keyslots[i].id = para.keyslot_list.keyslots[i].id;
-            keyslot_list->keyslots[i].type = para.keyslot_list.keyslots[i].type;
-        }
-    }
+	r = ioctl(handle, DSM_IOC_GET_KEYSLOT_LIST, (unsigned long)&para);
+	if (!r) {
+		slots->count = para.keyslot_list.count;
+		for (i = 0; i < slots->count; i++) {
+			slots->keyslots[i].id = para.keyslot_list.keyslots[i].id;
+			slots->keyslots[i].parity = para.keyslot_list.keyslots[i].parity;
+			slots->keyslots[i].algo = para.keyslot_list.keyslots[i].algo;
+			slots->keyslots[i].is_iv = para.keyslot_list.keyslots[i].is_iv;
+			slots->keyslots[i].is_enc = para.keyslot_list.keyslots[i].is_enc;
+		}
+	}
 
-    return r;
+	return r;
 }
 
-int dsm_set_property(int handle, uint32_t type, uint32_t value)
+int DSM_SetProperty(int handle, enum dsm_property_type type, uint32_t value)
 {
-    int r = -1;
-    union dsm_para para = { 0 };
+	int r = -1;
+	union dsm_para para = { 0 };
 
-    para.property.key = type;
-    para.property.value = value;
+	if (type >= DSM_PROP_UNKNOWN)
+		return -EINVAL;
 
-    r = ioctl(handle, DSM_IOC_SET_PROPERTY, (unsigned long)&para);
+	para.property.key = type;
+	para.property.value = value;
 
-    return r;
+	r = ioctl(handle, DSM_IOC_SET_PROPERTY, (unsigned long)&para);
+
+	return r;
 }
 
-int dsm_get_property(int handle, uint32_t type, uint32_t *value)
+int DSM_GetProperty(int handle, enum dsm_property_type type, uint32_t *value)
 {
-    int r = -1;
-    union dsm_para para = { 0 };
+	int r = -1;
+	union dsm_para para = { 0 };
 
-    if (!value)
-        return -EINVAL;
-    para.property.key = type;
-    r = ioctl(handle, DSM_IOC_GET_PROPERTY, (unsigned long)&para);
-    if (!r)
-        *value = para.property.value;
-    return r;
+	if (!value || type >= DSM_PROP_UNKNOWN)
+		return -EINVAL;
+
+	para.property.key = type;
+	r = ioctl(handle, DSM_IOC_GET_PROPERTY, (unsigned long)&para);
+	if (!r)
+		*value = para.property.value;
+	return r;
 }

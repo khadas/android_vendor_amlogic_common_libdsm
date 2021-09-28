@@ -15,6 +15,7 @@ cc_library_shared {
 
     include_dirs: [
         "system/core/liblog/include",
+        "common/drivers/amlogic/dvb/dsm",
     ],
 
     shared_libs: [
