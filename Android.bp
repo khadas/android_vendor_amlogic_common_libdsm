@@ -23,6 +23,32 @@ cc_library_shared {
 
 }
 
+cc_library_shared {
+    name: "libdsm.system",
+    system_ext_specific: true,
+    srcs: [
+        "libdsm.c",
+    ],
+
+    local_include_dirs: [
+        "."
+    ],
+
+    export_include_dirs: [
+        "."
+    ],
+
+    include_dirs: [
+        "system/core/liblog/include",
+        "common/drivers/amlogic/dvb/dsm",
+    ],
+
+    shared_libs: [
+        "liblog",
+    ],
+
+}
+
 cc_binary {
     name: "dsm_test",
     vendor: true,
