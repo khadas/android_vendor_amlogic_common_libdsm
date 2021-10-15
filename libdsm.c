@@ -14,8 +14,7 @@
 #include <fcntl.h>
 #include <log/log.h>
 
-//#include "linux/aml_dsm_dev.h"
-#include "aml_dsm.h"
+#include "linux/aml_dsm.h"
 #include "libdsm.h"
 
 #define DSM_DEV "/dev/aml_dsm"
